@@ -1,0 +1,14 @@
+#backgroundImage{
+    background-image: url("./image.jpg");
+    background-repeat: no-repeat;
+    background-size: cover;
+    height: 800px
+}
+
+
+
+
+#textfieldName ,#textfieldUsername, #textfieldPassword{
+    color: white
+
+}
