@@ -8,6 +8,8 @@ import firebase from 'firebase';
 import Auctioneer from '../auctioneer/auctioneer';
 import BidMenubar from '../bidder/bidder';
 import Myproduct from '../bidder/productlist';
+import Sold from '../purchaseandsold/sold';
+import Purchase from '../purchaseandsold/purchase';
 // function PrivateRoute1({component : Component ,  authentication , ...rest }){
 //       console.log(authentication , firebase.auth().currentUser.email);
 //   return(
@@ -46,6 +48,8 @@ export default class App extends Component {
               <Route authentication={this.state.authentication} component={Home} path="/mainpage"/>
               <Route component={BidMenubar} path="/bidder" />
               <Route component={Myproduct} path="/myproduct" />
+              <Route component={Sold} path="/sold"/>
+              <Route component={Purchase} path="/purchase"/>
               <br /><br/> 
           </Switch> 
             

@@ -1,6 +1,6 @@
 import React,{Component} from 'react';
 import firebase from 'firebase';
-import {sendProductDetails} from '../store/Action/action';
+import {sendProductDetails ,falseTheFlag} from '../store/Action/action';
 import { withStyles } from '@material-ui/core/styles';
 import AppBar from '@material-ui/core/AppBar';
 import Toolbar from '@material-ui/core/Toolbar';
@@ -21,10 +21,13 @@ import InputAdornment from '@material-ui/core/InputAdornment';
 
 function SimpleAppBar(props) {
     return (
-      <div style={{flexGrow: 1,}}>
+      <div style={{flexGrow: 1 }}>
         <AppBar position="static" style={styles.appBarColor}>
           <Toolbar>
-              <div style={{marginLeft: '85%',display:'inline-flex'}}>
+              <div style={{marginLeft: '78%',display:'inline-flex'}}>
+          <Button style={styles.authColor} onClick={props.routeToSold}> 
+                Sold
+          </Button>
           <Button style={styles.authColor} onClick={props.routeToBidder} >
              Bidder 
           </Button>
@@ -78,7 +81,8 @@ const styles = {
         backgroundColor: '#3F3F3F',
         width:'100%',
         opacity: 0.9,
-        borderBottom: '2px solid #F1C40F'
+        borderBottom: '2px solid #F1C40F',
+         paddingRight:'10%'
     },
     buttonstyle:{
         width:  600,
@@ -109,7 +113,8 @@ class Auctioneer extends Component{
             weight:"",
             currenetMonth : "",
             currentDate: '',
-            currentYear:''
+            currentYear:'',
+            conditionforhour :''
         }
     }
     componentWillMount(){
@@ -126,6 +131,9 @@ class Auctioneer extends Component{
         this.props.history.push('/bidder');
     }
 
+    routeToSold(){
+        this.props.history.push('/sold');
+    }
     fileSelectedHandler = (evt) => {
             
         console.log(evt.target.files[0]);
@@ -168,7 +176,8 @@ class Auctioneer extends Component{
         // let finalTime = currentHour + ":"+currentMinute;
         console.log(hour);
         this.setState({time: hour ,
-            todayTime: date
+            todayTime: date,
+            conditionforhour: currentHour
         });
     };
 
@@ -180,15 +189,22 @@ class Auctioneer extends Component{
         let hour = Time.getHours();
         let minutes = Time.getMinutes();
         let totalTime = hour*60*60*1000+minutes*60*1000;
-
+        let minimumTime = hour*60*60*1000+ 10*60*1000;
         let CurrDate = new Date();
         let date = CurrDate.getDate();
         let month= CurrDate.getMonth() + 1;
         let year = CurrDate.getFullYear();
-        console.log(date,month,year);
-       // console.log(minutes, hour);
-        if(this.state.time < totalTime){
+     //   console.log(date,month,year);
+        console.log(this.state.time,minimumTime);
+       if(this.state.selectedFile === null || this.state.weight === '' || this.state.name ==='' || this.state.productdes === '' || this.state.todaydate === "" || this.state.todayTime === "" || this.state.bidamount === ''){
+           alert('please fill all the fields');
+       }
+        else if(this.state.time < totalTime ) {
             alert('please  select correct time');
+        }
+        
+        else if(this.state.time <= minimumTime){
+            alert('please select maximum 10 mints time');
         }
         else if(this.state.selectedFile === null){
             alert('You have no selected an image');
@@ -196,8 +212,8 @@ class Auctioneer extends Component{
         else if(this.state.currentDate < date || this.state.currenetMonth <month || this.state.currentYear < year){
             alert('please select correct date..');
         }
-        else if(this.state.bidamount <=0){
-            alert('please select correct ammout');
+        else if(this.state.bidamount <=100){
+            alert('Minimum bid amount is 100 for any product');
         }
         else{
             console.log(firebase.auth().currentUser.uid)
@@ -229,10 +245,10 @@ class Auctioneer extends Component{
         }
     }
     render(){
-        console.log(this.state.selectedFile)
+     
         return(
             <div>       
-                <SimpleAppBar logOut={()=>this.logOut()} routeToBidder={() => this.routeToBidder()} />
+                <SimpleAppBar logOut={()=>this.logOut()} routeToBidder={() => this.routeToBidder()} routeToSold={() => this.routeToSold()} />
                
                 <Paper style={styles.paperStyle}>
                     <h2 style={{paddingLeft:'40%'}}>Enter Product</h2>
@@ -246,6 +262,7 @@ class Auctioneer extends Component{
                                         <Icon icon={image} size={200} style={{color: '#F1C40F' }}/> :
                                         <img src={require("../pictures/"+this.state.selectedFile.name)} alt={this.state.selectedFile.name}
                                         width="200" height="190" />
+                                        
                                 }
                                    
                             </CardMedia>
@@ -292,7 +309,7 @@ class Auctioneer extends Component{
                                     /> <br />
 
                                       <TimePicker inputStyle={{color:'black'}} style={{marginLeft:'25%',marginRight:'20%'}}
-                                    hintText="12hr Format" onChange={this.TimePicker}
+                                    hintText="12hr Format" onChange={this.TimePicker}  value={this.state.todayTime}
                                    
                                     /> 
 
@@ -320,12 +337,13 @@ class Auctioneer extends Component{
 function mapStateToProps(state){
     return{
        productData : state.root.productData
-}
+}   
 }
 
 function mapDispatchToProps(dispatch){  
     return{
-        sendProductDetails : (fullDetail,myfile) => {dispatch(sendProductDetails(fullDetail,myfile))}
+        sendProductDetails : (fullDetail,myfile) => {dispatch(sendProductDetails(fullDetail,myfile))},
+        falseTheFlag : (flag) => {dispatch(falseTheFlag(flag))}
     }
 }
 

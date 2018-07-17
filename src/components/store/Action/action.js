@@ -86,7 +86,6 @@ export function sendProductDetails(fullDetail, myfile) {
         var url;
 
         let storage = firebase.storage().ref(`/images/${fullDetail.UID}/${new Date().getTime()}`)
-
         let task = storage.put(myfile)
         task.on('state_changed',
             function progress(snapshot) {
@@ -118,6 +117,7 @@ export function fetchTheData(product) {
     return (dispatch) => {
 
         // console.log(product);
+        let UID = firebase.auth().currentUser.uid;
         let mydate = new Date();
         let day = mydate.getDate();
         let month = mydate.getMonth() + 1;
@@ -145,22 +145,63 @@ export function fetchTheData(product) {
                                 //    console.log(mydata[key2]);
                                 if (currentDate === mydata[key2].date) {
                                     if (hour > mydata[key2].time) {
-                                        console.log(mydata[key2]);
-                                        let bidder = firebase.database().ref(`/auctioneer/${key}/${key1}/${key2}/Bidder/`);
-                                        if(bidder){
-                                            let alldata= mydata[key2].Bidder;
-                                           for(var key2 in alldata){
-                                               console.log(key2, alldata[key2]);
-                                           }
+                                        // console.log(mydata[key2]);
+                                        if (mydata[key2].Bidder) {
+                                            console.log('true');
+                                            let alldata = mydata[key2].Bidder;
+                                            let productMaxamount = [];
+                                            for (var key3 in alldata) {
+                                                console.log(key3, alldata[key3]);
+                                                //    let amountData = alldata[key3];
+                                                //    for(var key4 in amountData){
+
+                                                productMaxamount.push(alldata[key3].Amount);
+                                                console.log(productMaxamount);
+                                                //  }
+                                            }
+                                            for (var key3 in alldata) {
+                                                if (Number(alldata[key3].Amount) === Math.max(...productMaxamount)) {
+                                                    console.log(key3, alldata[key3], mydata[key2].imageURL);
+                                                    firebase.database().ref().child(`/purchaseproduct/${UID}`).push().set({
+                                                        amount: alldata[key3].Amount,
+                                                        Description: alldata[key3].Description,
+                                                        email: alldata[key3].Email,
+                                                        imageurl: mydata[key2].imageURL,
+                                                        type: mydata[key2].categoryType,
+                                                        date: mydata[key2].date
+                                                    })
+
+                                                    firebase.database().ref().child(`/soldproduct/${key1}`).push().set({
+                                                        amount: alldata[key3].Amount,
+                                                        Description: alldata[key3].Description,
+                                                        email: alldata[key3].Email,
+                                                        imageurl: mydata[key2].imageURL,
+                                                        type: mydata[key2].categoryType,
+                                                        date: mydata[key2].date
+                                                    })
+
+                                                    console.log(key1, key2);
+                                                    firebase.database().ref(`/auctioneer/${key}/${key1}/${key2}`).remove();
+                                                }
+                                            }
+                                            // console.log(Math.max(...productMaxamount));
                                         }
-                                        
-                                     
-                                        // Object.keys(mydata[key2].Bidder).map((text,index) =>{
-                                        //     console.log("==============",text,index);
-                                        // })
-                                        // firebase.database().ref(`/soldproduct/${}`)
-                                        //  firebase.database().ref(`/auctioneer/${key}/${key1}/${key2}/`).remove()
+
+                                        else {
+                                            console.log("*****");
+                                            firebase.database().ref(`/auctioneer/${key}/${key1}/${key2}`).remove();
+                                        }
+
+
+                                        //then((detail) =>{
+                                        //     console.log(detail);
+                                        // }).catch((err) => {console.log(err)})
+                                        // console.log(bidder.orderByCalled_);
+                                        // if(bidder.orderByCalled_ === true){
+
+
                                     }
+
                                     else {
                                         array.push({
                                             UID: key1,
@@ -197,6 +238,7 @@ export function fetchTheData(product) {
                     }
 
                 }
+
                 //  console.log(array);
                 dispatch({ type: ActionTypes.productData, payload: array });
             });
@@ -204,99 +246,109 @@ export function fetchTheData(product) {
         }
 
     }
+
 }
 
 export function appliedToJobs(bidDetials) {
     return dispatch => {
-        // console.log(bidDetials);
         let bidder = firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/${bidDetials.productKey}/Bidder/`);
         console.log(bidder);
 
-        firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/${bidDetials.productKey}/`)
+        firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/`)
             .once('value', snap => {
                 let data = snap.val();
-                // let mybid = data.Bidder
-                console.log(data.Bidder);
-                if (Number(bidDetials.Amount) <= Number(data.bidamount)) {
-                    alert('Your selected ammount is less please select higher amount');
-
+                console.log(snap.key, data);
+                if (snap.key === bidDetials.UserUID) {
+                    alert('You cannot apply on your own product')
                 }
                 else {
+                    for (var key in data) {
+                        // console.log(key , data[key]);
+                        if (key === bidDetials.productKey) {
+                            if (Number(bidDetials.Amount) <= Number(data[key].bidamount)) {
+                                alert('Your selected ammount is less please select higher amount');
+                            }
 
-                    if (data.Bidder) {
-                        let array = [];
-                        //Object.keys(data.Bidder).map((key) => {
-                        for (var key in data.Bidder) {
-                            let newdata = data.Bidder[key];
+                            else {
+                                if (data[key].Bidder) {
+                                    let array = [];
+                                    let mydata = data[key].Bidder;
+                                    for (var key in mydata) {
+                                        let newdata = mydata[key];
+                                        array.push(Number(newdata.Amount));
+                                        console.log(array);
+                                    }
+                                    var maxamount = Math.max(...array);
+                                    if (Number(bidDetials.Amount) > maxamount) {
+                                        console.log(bidDetials);
+                                        firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/${bidDetials.productKey}/Bidder/${bidDetials.UserUID}/`)
+                                            .set({
+                                                Description: bidDetials.Description,
+                                                Amount: bidDetials.Amount,
+                                                Email: bidDetials.Email,
+                                                Image: bidDetials.imageURL
+                                            })
 
-                            array.push(Number(newdata.Amount));
-                            console.log(array);
-
-
-                            // if (Number(bidDetials.Amount) > Number(data.Bidder[key].Amount)) {
-                            //     console.log("=====" + bidDetials.Amount);
-                            //     firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/${bidDetials.productKey}/Bidder/${bidDetials.UserUID}/`)
-                            //         .set({
-                            //             Description: bidDetials.Description,
-                            //             Amount: bidDetials.Amount,
-                            //             Email: bidDetials.Email,
-                            //         })
-
-                            //         alert('Bid applied successfully');
-                            //         break;
-                            // }
-
-                            // else {
-                            //     console.log("========" + data.Bidder[key].Amount);
-                            //     alert('please select higher amount');
-                            // }
-
-
-                        }
-                        console.log(Math.max(...array));
-                        var maxamount = Math.max(...array);
-                        if (Number(bidDetials.Amount) > maxamount) {
-                            firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/${bidDetials.productKey}/Bidder/${bidDetials.UserUID}/`)
-                                .set({
-                                    Description: bidDetials.Description,
-                                    Amount: bidDetials.Amount,
-                                    Email: bidDetials.Email,
-                                })
-
-                            alert('Bid applied successfully');
-                        }
-                        else {
-                            // console.log("========" + data.Bidder[key].Amount);
-                            alert('please select higher amount');
+                                        alert('Bid applied successfully');
+                                    }
+                                    else {
+                                        alert('please select higher amount');
+                                    }
+                                }
+                                else {
+                                     console.log(bidDetials);
+                                    firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/${bidDetials.productKey}/Bidder/${bidDetials.UserUID}/`)
+                                        .set({
+                                            Description: bidDetials.Description,
+                                            Amount: bidDetials.Amount,
+                                            Email: bidDetials.Email,
+                                        })
+                                    alert('successfully');
+                                }
+                            }
                         }
                     }
-
-                    else {
-                        firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/${bidDetials.productKey}/Bidder/${bidDetials.UserUID}/`)
-                            .set({
-                                Description: bidDetials.Description,
-                                Amount: bidDetials.Amount,
-                                Email: bidDetials.Email,
-                            })
-                        alert('successfully');
-                    }
-                    // : 
-
                 }
 
+                // if (Number(bidDetials.Amount) <= Number(data.bidamount)) {
+                //     alert('Your selected ammount is less please select higher amount');
+                // }
+                // else {
+                //     if (data.Bidder) {
+                //         let array = [];
+                //         for (var key in data.Bidder) {
+                //             let newdata = data.Bidder[key];
+                //             array.push(Number(newdata.Amount));
+                //             console.log(array);
+                //         }
+                //         console.log(Math.max(...array));
+                //         var maxamount = Math.max(...array);
+                //         if (Number(bidDetials.Amount) > maxamount) {
+                //             firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/${bidDetials.productKey}/Bidder/${bidDetials.UserUID}/`)
+                //                 .set({
+                //                     Description: bidDetials.Description,
+                //                     Amount: bidDetials.Amount,
+                //                     Email: bidDetials.Email,
+                //                     Image: bidDetials.imageURL
+                //                 })
+
+                //             alert('Bid applied successfully');
+                //         }
+                //         else {
+                //             alert('please select higher amount');
+                //         }
+                //     }
+                //     else {
+                //         firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/${bidDetials.productKey}/Bidder/${bidDetials.UserUID}/`)
+                //             .set({
+                //                 Description: bidDetials.Description,
+                //                 Amount: bidDetials.Amount,
+                //                 Email: bidDetials.Email,
+                //             })
+                //         alert('successfully');
+                //     }
+                // }
             })
-
-
-
-        //else {
-        // firebase.database().ref(`/auctioneer/${bidDetials.productName}/${bidDetials.UID}/${bidDetials.productKey}/Bidder/${bidDetials.UserUID}/`).set({
-        //     Description: bidDetials.Description,
-        //     Amount : bidDetials.Amount,
-        //     Email: bidDetials.Email,
-        // })
-        //   alert('Bid apply successfully');
-        //  }
-
     }
 }
 
